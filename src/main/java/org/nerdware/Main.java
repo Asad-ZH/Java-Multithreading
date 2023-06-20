@@ -1,38 +1,49 @@
 package org.nerdware;
 
-import java.util.concurrent.Executor;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 class runnable extends Thread {
-    private int id;
 
-    public runnable(int id) {
-        this.id = id;
+    private CountDownLatch latch;
+
+    public runnable(CountDownLatch latch) {
+        this.latch = latch;
     }
 
-    public void run() {
-        System.out.println("Thread " + id + " is running");
 
+    public void run() {
+        System.out.println("Thread " + latch + " is running");
         try {
-            Thread.sleep(5000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+        latch.countDown();
     }
 }
 
 public class Main {
     public static void main(String[] args) {
 
+        CountDownLatch latch = new CountDownLatch(7);
+
         // Assigning the number of threads to be used
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+        ExecutorService executor = Executors.newFixedThreadPool(3);
 
         for (int i = 0; i < 7; i++) {
-            executor.submit(new runnable(i));
+            executor.submit(new runnable(latch));
         }
 
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        System.out.println("All threads are finished");
         executor.shutdown();
 
         try {
@@ -40,7 +51,5 @@ public class Main {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
-        System.out.println("All tasks are completed");
     }
 }
